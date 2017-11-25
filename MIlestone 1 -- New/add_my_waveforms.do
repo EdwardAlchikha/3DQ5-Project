@@ -15,6 +15,12 @@ add wave -hexadecimal uut/SRAM_read_data
 add wave -unsigned uut/SRAM_address
 add wave -unsigned uut/M1_unit/ITERATION
 
+add wave -divider "(Y Values)"
+add wave -unsigned uut/M1_unit/Yp3
+add wave -unsigned uut/M1_unit/Yp2
+add wave -unsigned uut/M1_unit/Yp1
+add wave -unsigned uut/M1_unit/Yp0
+
 add wave -divider "(U Upsampling)"
 add wave -unsigned uut/M1_unit/Up10
 add wave -unsigned uut/M1_unit/Up8

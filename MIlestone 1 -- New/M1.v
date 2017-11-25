@@ -27,8 +27,8 @@ logic [17:0] RGB_START = 18'd146944;
 logic [15:0] IMG_WIDTH = 16'd320;
 logic [15:0] IMG_HEIGHT = 16'd240;
 
-logic [7:0] Yn4, Yn3, Yn2, Yn1, Y0, Yp1, Yp2, Yp3, Yp4, Yp5, Yp6, Yp7, Yp8, Yp9, Yp10; //8,7,6,5 are always_comb set. Rest always_ff set.
-logic [7:0] YP7, YP8, YP9, YP10;
+logic [7:0] Yp0, Yp1, Yp2, Yp3; //No need to buffer since no upsampling. Just fetch the correct address.
+logic [7:0] YP0, YP1, YP2, YP3;
 logic [7:0] Un4, Un2, U0, Up2, Up4, Up6, Up8, Up10;
 logic [7:0] UP8, UP10;
 logic [7:0] Vn4, Vn2, V0, Vp2, Vp4, Vp6, Vp8, Vp10; //Vp10,8 always_comb set, rest always_ff.
@@ -41,8 +41,6 @@ logic[7:0] R0, G0, B0, R1, G1, B1, R2, G2, B2, R3, G3, B3;
 
 logic [7:0] U_0, U_1, U_2, U_3,
             V_0, V_1, V_2, V_3;
-
-logic [32:0] DEBUG_SUM_U_1, DEBUG_SUM_U_3;
 
 
 logic [31:0] U_3B0, U_3B1, U_3B2;
@@ -64,9 +62,7 @@ always_comb begin
 end
 
 always_comb begin
-  YP7 = 0; YP8 = 0; YP9 = 0; YP10 = 0;
-  UP8 = 0; UP10 = 0;
-  VP8 = 0; VP10 = 0;
+  YP0 = 0; YP1 = 0; YP2 = 0; YP3 = 0;
   mult00 = 0; mult01 = 0;
   mult10 = 0; mult11 = 0;
   mult20 = 0; mult21 = 0;
@@ -75,21 +71,21 @@ always_comb begin
   case(STATE)
 	C3: begin
 		mult00 = 32'd76284;
-		mult01 = Y0 - 8'd16;
+		mult01 = YP0 - 8'd16;
 		mult10 = 32'd76284;
-		mult11 = Yp1 - 8'd16;
+		mult11 = YP1 - 8'd16;
 		
-		YP7 = SRAM_read_data[15:8];
-		YP8 = SRAM_read_data[7:0];
+		YP0 = SRAM_read_data[15:8];
+		YP1 = SRAM_read_data[7:0];
 	end
 	C4: begin
 		mult20 = 32'd76284;
-		mult21 = Yp2 - 8'd16;
+		mult21 = YP2 - 8'd16;
 		mult30 = 32'd76284;
-		mult31 = Yp3 - 8'd16;
+		mult31 = YP3 - 8'd16;
 
-		YP9 = SRAM_read_data[15:8];
-		YP10 = SRAM_read_data[7:0];
+		YP2 = SRAM_read_data[15:8];
+		YP3 = SRAM_read_data[7:0];
 		
 	end
 	C5: begin
@@ -204,14 +200,14 @@ always_ff @(posedge Clock or negedge Resetn) begin
 	U_0 <= 0; U_1 <= 0; U_2 <= 0; U_3 <= 0;
 	V_0 <= 0; V_1 <= 0; V_2 <= 0; V_3 <= 0;
 
-	Yn4 <=0; Yn3 <= 0; Yn2 <=0; Yn1 <=0; Y0 <= 0; Yp1 <= 0; Yp2 <= 0; Yp3 <=0; Yp4 <= 0; Yp5 <= 0; Yp6 <= 0; Yp7 <= 0; Yp8 <= 0; Yp9 <= 0; Yp10 <= 0;
+	Yp0 <= 0; Yp1 <= 0; Yp2 <= 0; Yp3 <=0;
 	Un4 <=0; Un2 <=0; U0 <= 0; Up2 <= 0; Up4 <=0; Up6 <= 0; Up8 <= 0; Up10 <= 0;
 	Vn4 <= 0; Vn2 <= 0; V0 <= 0; Vp2 <=0; Vp4 <= 0; Vp6 <= 0; Vp8 <= 0; Vp10 <=0;
   end
   else begin
 	case(STATE)
 		IDLE: begin
-			SRAM_address <= Y_START;
+			SRAM_address <= 0;
 			SRAM_write_data <= 0;
 			SRAM_we_n <= 1;
 
@@ -251,8 +247,6 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			Up8 <= 0;
 			Up10 <= 0;
 
-			SRAM_we_n <= 1;
-			SRAM_address <= Y_START + (ITERATION << 2);
 			STATE <= I5;
 		end
 		I5: begin
@@ -261,8 +255,6 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			Vn2 <= SRAM_read_data[15:8];
 			Vn4 <= SRAM_read_data[15:8];
 
-			SRAM_we_n <= 1;
-			SRAM_address <= Y_START + (ITERATION << 2) + 1;
 			STATE <= I6;
 		end
 		I6: begin
@@ -271,32 +263,16 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			Vp8 <= 0;
 			Vp10 <= 0;
 
-			SRAM_we_n <= 1;
-			SRAM_address <= Y_START + (ITERATION << 2) + 2;
-			STATE <= I7;
-		end
-		I7: begin
-			SRAM_we_n <= 1;
-			SRAM_address <= Y_START + (ITERATION << 2) + 3;
-			STATE <= I8;
-		end
-		I8: begin
-			STATE <= I9;
-		end
-		I9: begin
-			STATE <= I10;
-		end
-		I10: begin
 			STATE <= C0;
 		end
 		C0: begin
-			SRAM_address <= Y_START + ITERATION*2 + 4; //+4 for the read being +4 addresses (+8 values) ahead.
+			SRAM_address <= Y_START + (ITERATION << 1);
 			SRAM_we_n <= 1;
 
 			STATE <= C1;
 		end
 		C1: begin
-			SRAM_address <= Y_START + 1 + ITERATION*2 + 4;
+			SRAM_address <= Y_START + 1 + (ITERATION << 1);
 			SRAM_we_n <= 1;
 
 			STATE <= C2;
@@ -312,8 +288,8 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			SRAM_address <= V_START + ITERATION + 2; //+2 for the read being +2 addresses (+4 values) ahead.
 			SRAM_we_n <= 1;
 
-			Yp10 <= YP10;
-			Yp9 <= YP9;
+			Yp0 <= YP0;
+			Yp1 <= YP1;
 
 			A31_0 <= MULT0[31:0];
 			A31_1 <= MULT1[31:0];
@@ -324,8 +300,8 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			A31_2 <= MULT2[31:0];
 			A31_3 <= MULT3[31:0];
 			
-			Yp8 <= YP8;
-			Yp7 <= YP7;
+			Yp2 <= YP2;
+			Yp3 <= YP3;
 
 			STATE <= C5;
 		end
@@ -412,10 +388,6 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			//SRAM_we_n <= 0;
 			//SRAM_address <= RGB_START + 5 + ITERATION*6;
 			//SRAM_write_data <= {G3, B3};
-			Yp10 <= 0; Yp9 <= 0; Yp8 <= 0; Yp7 <= 0; 
-			Yp6 <= Yp10; Yp5 <= Yp9; Yp4 <= Yp8; Yp3 <= Yp7; 
-			Yp2 <= Yp6; Yp1 <= Yp5; Y0 <= Yp4; Yn1 <= Yp3;
-			Yn2 <= Yp2; Yn3 <= Yp1; Yn4 <= Y0;
 
 			Up10 <= 0; Up8 <= 0; 
 			Up6 <= Up10; Up4 <= Up8; Up2 <= Up6; U0 <= Up4; Un2 <= Up2; Un4 <= U0;
