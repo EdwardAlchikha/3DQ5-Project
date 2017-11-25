@@ -27,12 +27,12 @@ logic [17:0] RGB_START = 18'd146944;
 logic [15:0] IMG_WIDTH = 16'd320;
 logic [15:0] IMG_HEIGHT = 16'd240;
 
-logic [7:0] Yn4, Yn3, Yn2, Yn1, Y0, Yp1, Yp2, Yp3, Yp4, Yp5, Yp6, Yp7, Yp8; //8,7,6,5 are always_comb set. Rest always_ff set.
-logic [7:0] YP5, YP6, YP7, YP8;
-logic [7:0] Un4, Un2, U0, Up2, Up4, Up6, Up8;
-logic [7:0] UP6, UP8;
-logic [7:0] Vn4, Vn2, V0, Vp2, Vp4, Vp6, Vp8; //Vp8,7 always_comb set, rest always_ff.
-logic [7:0] VP6, VP8;
+logic [7:0] Yn4, Yn3, Yn2, Yn1, Y0, Yp1, Yp2, Yp3, Yp4, Yp5, Yp6, Yp7, Yp8, Yp9, Yp10; //8,7,6,5 are always_comb set. Rest always_ff set.
+logic [7:0] YP7, YP8, YP9, YP10;
+logic [7:0] Un4, Un2, U0, Up2, Up4, Up6, Up8, Up10;
+logic [7:0] UP8, UP10;
+logic [7:0] Vn4, Vn2, V0, Vp2, Vp4, Vp6, Vp8, Vp10; //Vp10,8 always_comb set, rest always_ff.
+logic [7:0] VP8, VP10;
 
 logic [31:0] mult00, mult01, mult10, mult11, mult20, mult21, mult30, mult31;
 logic [63:0] MULT0, MULT1, MULT2, MULT3;
@@ -48,9 +48,11 @@ logic [32:0] DEBUG_SUM_U_1, DEBUG_SUM_U_3;
 logic [31:0] U_3B0, U_3B1, U_3B2;
 logic [63:0] A11, A21, A31_0, A31_1, A31_2, A31_3;
 
+logic[17:0] ITERATION;
+
 enum logic [7:0] {
   IDLE,
-  I0, I1, I2, I3, I4, I5,
+  I0, I1, I2, I3, I4, I5, I6, I7, I8, I9, I10,
   C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
 } STATE;
 
@@ -62,9 +64,9 @@ always_comb begin
 end
 
 always_comb begin
-  YP5 = 0; YP6 = 0; YP7 = 0; YP8 = 0;
-  UP6 = 0; UP8 = 0;
-  VP6 = 0; VP8 = 0;
+  YP7 = 0; YP8 = 0; YP9 = 0; YP10 = 0;
+  UP8 = 0; UP10 = 0;
+  VP8 = 0; VP10 = 0;
   mult00 = 0; mult01 = 0;
   mult10 = 0; mult11 = 0;
   mult20 = 0; mult21 = 0;
@@ -77,8 +79,8 @@ always_comb begin
 		mult10 = 32'd76284;
 		mult11 = Yp1 - 8'd16;
 		
-		YP5 = SRAM_read_data[15:8];
-		YP6 = SRAM_read_data[7:0];
+		YP7 = SRAM_read_data[15:8];
+		YP8 = SRAM_read_data[7:0];
 	end
 	C4: begin
 		mult20 = 32'd76284;
@@ -86,17 +88,23 @@ always_comb begin
 		mult30 = 32'd76284;
 		mult31 = Yp3 - 8'd16;
 
-		YP7 = SRAM_read_data[15:8];
-		YP8 = SRAM_read_data[7:0];
+		YP9 = SRAM_read_data[15:8];
+		YP10 = SRAM_read_data[7:0];
 		
 	end
 	C5: begin
-		UP6 = SRAM_read_data[15:8];
-		UP8 = SRAM_read_data[7:0];
+		if((ITERATION % (IMG_WIDTH >> 1)) > ((IMG_WIDTH >> 1) - 3)) begin
+			UP8 = Up6;
+			UP10 = Up6;
+		end
+		else begin
+			UP8 = SRAM_read_data[15:8];
+			UP10 = SRAM_read_data[7:0];
+		end
 
 		//For U_1
 		mult00 = 32'd21;
-		mult01 = UP6 + Un4;
+		mult01 = Up6 + Un4;
 		mult10 = 32'd52;
 		mult11 = Up4 + Un2;
 		mult20 = 32'd159;
@@ -107,12 +115,18 @@ always_comb begin
 		mult31 = UP8 + Un2;
 	end
 	C6: begin
-		VP6 = SRAM_read_data[15:8];
-		VP8 = SRAM_read_data[7:0];
+		if((ITERATION % (IMG_WIDTH >> 1)) > ((IMG_WIDTH >> 1) - 3)) begin
+			VP8 = Vp6;
+			VP10 = Vp6;
+		end
+		else begin
+			VP8 = SRAM_read_data[15:8];
+			VP10 = SRAM_read_data[7:0];
+		end
 
 		//For V_1
 		mult00 = 32'd21;
-		mult01 = VP6 + Vn4;
+		mult01 = Vp6 + Vn4;
 		mult10 = 32'd52;
 		mult11 = Vp4 + Vn2;
 		mult20 = 32'd159;
@@ -178,7 +192,6 @@ always_comb begin
   endcase
 end
 
-logic[17:0] ITERATION;
 
 always_ff @(posedge Clock or negedge Resetn) begin
   if(~Resetn) begin
@@ -191,9 +204,9 @@ always_ff @(posedge Clock or negedge Resetn) begin
 	U_0 <= 0; U_1 <= 0; U_2 <= 0; U_3 <= 0;
 	V_0 <= 0; V_1 <= 0; V_2 <= 0; V_3 <= 0;
 
-	Yn4 <=0; Yn3 <= 0; Yn2 <=0; Yn1 <=0; Y0 <= 0; Yp1 <= 0; Yp2 <= 0; Yp3 <=0; Yp4 <= 0; Yp5 <= 0; Yp6 <= 0; Yp7 <= 0; Yp8 <= 0;
-	Un4 <=0; Un2 <=0; U0 <= 0; Up2 <= 0; Up4 <=0; Up6 <= 0; Up8 <= 0;
-	Vn4 <= 0; Vn2 <= 0; V0 <= 0; Vp2 <=0; Vp4 <= 0; Vp6 <= 0; Vp8 <= 0;
+	Yn4 <=0; Yn3 <= 0; Yn2 <=0; Yn1 <=0; Y0 <= 0; Yp1 <= 0; Yp2 <= 0; Yp3 <=0; Yp4 <= 0; Yp5 <= 0; Yp6 <= 0; Yp7 <= 0; Yp8 <= 0; Yp9 <= 0; Yp10 <= 0;
+	Un4 <=0; Un2 <=0; U0 <= 0; Up2 <= 0; Up4 <=0; Up6 <= 0; Up8 <= 0; Up10 <= 0;
+	Vn4 <= 0; Vn2 <= 0; V0 <= 0; Vp2 <=0; Vp4 <= 0; Vp6 <= 0; Vp8 <= 0; Vp10 <=0;
   end
   else begin
 	case(STATE)
@@ -204,71 +217,103 @@ always_ff @(posedge Clock or negedge Resetn) begin
 
 			ITERATION <= 0;
 
-			if(Start) STATE <= C0;
+			if(Start) STATE <= I0;
 			else STATE <= IDLE;
 		end
 		I0: begin
-			SRAM_address <= Y_START + ITERATION*2;
 			SRAM_we_n <= 1;
+			SRAM_address <= U_START + ITERATION;
 			STATE <= I1;
 		end
 		I1: begin
-			SRAM_address <= U_START + ITERATION;
 			SRAM_we_n <= 1;
+			SRAM_address <= U_START + ITERATION + 1;
 			STATE <= I2;
 		end
 		I2: begin
-			SRAM_address <= V_START + ITERATION;
 			SRAM_we_n <= 1;
+			SRAM_address <= V_START + ITERATION;
 			STATE <= I3;
 		end
 		I3: begin
-			//Yp8 <= SRAM_read_data[
+			Up2 <= SRAM_read_data[7:0];
+			U0 <= SRAM_read_data[15:8];
+			Un2 <= SRAM_read_data[15:8];
+			Un4 <= SRAM_read_data[15:8];
 
+			SRAM_we_n <= 1;
+			SRAM_address <= V_START + ITERATION + 1;
 			STATE <= I4;
 		end
 		I4: begin
-			/*for(int i = 0; i < 15; i++) begin
-				U_Buffer[i] <= SRAM_read_data[15:8];
-			end
-			U_Buffer[15] <= SRAM_read_data[7:0];*/
+			Up4 <= SRAM_read_data[15:8];
+			Up6 <= SRAM_read_data[7:0];
+			Up8 <= 0;
+			Up10 <= 0;
 
+			SRAM_we_n <= 1;
+			SRAM_address <= Y_START + (ITERATION << 2);
 			STATE <= I5;
 		end
 		I5: begin
-			/*for(int i = 0; i < 15; i++) begin
-				V_Buffer[i] <= SRAM_read_data[15:8];
-			end
-			V_Buffer[15] <= SRAM_read_data[7:0];*/
+			Vp2 <= SRAM_read_data[7:0];
+			V0 <= SRAM_read_data[15:8];
+			Vn2 <= SRAM_read_data[15:8];
+			Vn4 <= SRAM_read_data[15:8];
 
-			//ITERATION <= ITERATION + 1;
+			SRAM_we_n <= 1;
+			SRAM_address <= Y_START + (ITERATION << 2) + 1;
+			STATE <= I6;
+		end
+		I6: begin
+			Vp4 <= SRAM_read_data[15:8];
+			Vp6 <= SRAM_read_data[7:0];
+			Vp8 <= 0;
+			Vp10 <= 0;
+
+			SRAM_we_n <= 1;
+			SRAM_address <= Y_START + (ITERATION << 2) + 2;
+			STATE <= I7;
+		end
+		I7: begin
+			SRAM_we_n <= 1;
+			SRAM_address <= Y_START + (ITERATION << 2) + 3;
+			STATE <= I8;
+		end
+		I8: begin
+			STATE <= I9;
+		end
+		I9: begin
+			STATE <= I10;
+		end
+		I10: begin
 			STATE <= C0;
 		end
 		C0: begin
-			SRAM_address <= Y_START + ITERATION*2;
+			SRAM_address <= Y_START + ITERATION*2 + 4; //+4 for the read being +4 addresses (+8 values) ahead.
 			SRAM_we_n <= 1;
 
 			STATE <= C1;
 		end
 		C1: begin
-			SRAM_address <= Y_START + 1 + ITERATION*2;
+			SRAM_address <= Y_START + 1 + ITERATION*2 + 4;
 			SRAM_we_n <= 1;
 
 			STATE <= C2;
 		end
 		C2: begin
-			SRAM_address <= U_START + ITERATION;
+			SRAM_address <= U_START + ITERATION + 2; //+2 for the read being +2 addresses (+4 values) ahead.
 			SRAM_we_n <= 1;
 
 			
 			STATE <= C3;
 		end
 		C3: begin
-			SRAM_address <= V_START + ITERATION;
+			SRAM_address <= V_START + ITERATION + 2; //+2 for the read being +2 addresses (+4 values) ahead.
 			SRAM_we_n <= 1;
 
-			Yp8 <= YP8;
-			Yp7 <= YP7;
+			Yp10 <= YP10;
+			Yp9 <= YP9;
 
 			A31_0 <= MULT0[31:0];
 			A31_1 <= MULT1[31:0];
@@ -279,14 +324,14 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			A31_2 <= MULT2[31:0];
 			A31_3 <= MULT3[31:0];
 			
-			Yp6 <= YP6;
-			Yp5 <= YP5;
+			Yp8 <= YP8;
+			Yp7 <= YP7;
 
 			STATE <= C5;
 		end
 		C5: begin
+			Up10 <= UP10;
 			Up8 <= UP8;
-			Up6 <= UP6;
 
 			U_0 <= U0;
 			U_1 <= (MULT0 + MULT2 + 32'd128 - MULT1) >> 8;
@@ -297,8 +342,8 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			STATE <= C6;
 		end
 		C6: begin
+			Vp10 <= VP10;
 			Vp8 <= VP8;
-			Vp6 <= VP6;
 
 			V_0 <= V0;
 			V_1 <= (MULT0 - MULT1 + MULT2 + 32'd128) >> 8;
@@ -367,23 +412,21 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			//SRAM_we_n <= 0;
 			//SRAM_address <= RGB_START + 5 + ITERATION*6;
 			//SRAM_write_data <= {G3, B3};
-			Yp8 <= 0; Yp7 <= 0; Yp6 <= 0; Yp5 <= 0;
-			Yp4 <= Yp8; Yp3 <= Yp7; Yp2 <= Yp6; Yp1 <= Yp5;
-			Y0 <= Yp4; Yn1 <= Yp3; Yn2 <= Yp2; Yn3 <= Yp1; Yn4 <= Y0;
+			Yp10 <= 0; Yp9 <= 0; Yp8 <= 0; Yp7 <= 0; 
+			Yp6 <= Yp10; Yp5 <= Yp9; Yp4 <= Yp8; Yp3 <= Yp7; 
+			Yp2 <= Yp6; Yp1 <= Yp5; Y0 <= Yp4; Yn1 <= Yp3;
+			Yn2 <= Yp2; Yn3 <= Yp1; Yn4 <= Y0;
 
-			Up8 <= 0; Up6 <=0;
-			Up4 <= Up8; Up2 <= Up6; 
-			U0 <= Up4; Un2 <= Up2; Un4 <= U0;
+			Up10 <= 0; Up8 <= 0; 
+			Up6 <= Up10; Up4 <= Up8; Up2 <= Up6; U0 <= Up4; Un2 <= Up2; Un4 <= U0;
 
-			Vp8 <= 0; Vp6 <=0; 
-			Vp4 <= Vp8; Vp2 <= Vp6; 
-			V0 <= Vp4; Vn2 <= Vp2; Vn4 <= V0;
-
+			Vp10 <= 0; Vp8 <= 0; 
+			Vp6 <= Vp10; Vp4 <= Vp8; Vp2 <= Vp6; V0 <= Vp4; Vn2 <= Vp2; Vn4 <= V0;
 			
 
 			ITERATION <= ITERATION + 1;
 
-			if(ITERATION == (IMG_WIDTH / 2 - 1)) STATE <= C0; //STATE <= I0; //Downsampled original with WIDTH/2.
+			if(ITERATION % (IMG_WIDTH >> 1) == ((IMG_WIDTH >> 1) - 1)) STATE <= I0; //Downsampled original with WIDTH/2.
 			else STATE <= C0;
 		end
 	endcase
