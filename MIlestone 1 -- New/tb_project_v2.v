@@ -323,9 +323,9 @@ always @ (posedge Clock_50) begin
 	
 	
 		if (SRAM_ARRAY[uut.SRAM_address] != uut.SRAM_write_data) begin
-			$write("Address %d (%x hex), wrote value %d (%x hex), correct values is %d (%x hex)\n",
+			$write("Address %d (%x hex), wrote value %d (%x hex), correct values is %d (%x hex). ITERATION: %d\n",
 				uut.SRAM_address, uut.SRAM_address, uut.SRAM_write_data, uut.SRAM_write_data, 
-				SRAM_ARRAY[uut.SRAM_address], SRAM_ARRAY[uut.SRAM_address]);
+				SRAM_ARRAY[uut.SRAM_address], SRAM_ARRAY[uut.SRAM_address], uut.M1_unit.ITERATION);
 			$write("sim time %t\n", $realtime);
 	  //$write("print some useful debug info here...\n");
 		 // $write("M1 state %d\n", uut.M1.unit.state);
@@ -333,7 +333,6 @@ always @ (posedge Clock_50) begin
 			num_mismatches = num_mismatches + 1;
 			if (num_mismatches == `MAX_MISMATCHES) $stop;
 		end
-		else $write("Match!");
 		
 		SRAM_ARRAY_write_count[uut.SRAM_address] = SRAM_ARRAY_write_count[uut.SRAM_address] + 1;
 		if (SRAM_ARRAY_write_count[uut.SRAM_address] != 1 && warn_multiple_writes_to_same_location < `MAX_MISMATCHES) begin

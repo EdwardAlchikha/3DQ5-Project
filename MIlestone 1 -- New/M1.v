@@ -37,7 +37,8 @@ logic [7:0] VP8, VP10;
 logic [31:0] mult00, mult01, mult10, mult11, mult20, mult21, mult30, mult31;
 logic [63:0] MULT0, MULT1, MULT2, MULT3;
 
-logic[7:0] R0, G0, B0, R1, G1, B1, R2, G2, B2, R3, G3, B3;
+logic [7:0] R0, G0, B0, R1, G1, B1, R2, G2, B2, R3, G3, B3; //FF
+logic [7:0] r0, g0, b0, r1, g1, b1, r2, g2, b2, r3, g3, b3; //comb
 
 logic [7:0] U_0, U_1, U_2, U_3,
             V_0, V_1, V_2, V_3;
@@ -50,19 +51,23 @@ logic[17:0] ITERATION;
 
 enum logic [7:0] {
   IDLE,
-  I0, I1, I2, I3, I4, I5, I6, I7, I8, I9, I10,
+  I0, I1, I2, I3, I4, I5, I6,
   C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
 } STATE;
 
+logic[32:0] DEBUG_R0_SUM0, DEBUG_R0_SUM1, DEBUG_R0_SUM2;
+
 always_comb begin
-  MULT0 = mult00 * mult01;
-  MULT1 = mult10 * mult11;
-  MULT2 = mult20 * mult21;
-  MULT3 = mult30 * mult31;
+  MULT0 = $signed(mult00 * mult01);
+  MULT1 = $signed(mult10 * mult11);
+  MULT2 = $signed(mult20 * mult21);
+  MULT3 = $signed(mult30 * mult31);
 end
 
 always_comb begin
   YP0 = 0; YP1 = 0; YP2 = 0; YP3 = 0;
+  UP8 = 0; UP10 = 0;
+  VP8 = 0; VP10 = 0;
   mult00 = 0; mult01 = 0;
   mult10 = 0; mult11 = 0;
   mult20 = 0; mult21 = 0;
@@ -70,26 +75,27 @@ always_comb begin
 
   case(STATE)
 	C3: begin
+		YP0 = SRAM_read_data[15:8];
+		YP1 = SRAM_read_data[7:0];
+
 		mult00 = 32'd76284;
 		mult01 = YP0 - 8'd16;
 		mult10 = 32'd76284;
 		mult11 = YP1 - 8'd16;
-		
-		YP0 = SRAM_read_data[15:8];
-		YP1 = SRAM_read_data[7:0];
+
 	end
 	C4: begin
+		YP2 = SRAM_read_data[15:8];
+		YP3 = SRAM_read_data[7:0];
+
 		mult20 = 32'd76284;
 		mult21 = YP2 - 8'd16;
 		mult30 = 32'd76284;
 		mult31 = YP3 - 8'd16;
-
-		YP2 = SRAM_read_data[15:8];
-		YP3 = SRAM_read_data[7:0];
 		
 	end
 	C5: begin
-		if((ITERATION % (IMG_WIDTH >> 1)) > ((IMG_WIDTH >> 1) - 3)) begin
+		if((ITERATION % (IMG_WIDTH >> 2)) > ((IMG_WIDTH >> 2) - 3)) begin
 			UP8 = Up6;
 			UP10 = Up6;
 		end
@@ -111,7 +117,7 @@ always_comb begin
 		mult31 = UP8 + Un2;
 	end
 	C6: begin
-		if((ITERATION % (IMG_WIDTH >> 1)) > ((IMG_WIDTH >> 1) - 3)) begin
+		if((ITERATION % (IMG_WIDTH >> 2)) > ((IMG_WIDTH >> 2) - 3)) begin
 			VP8 = Vp6;
 			VP10 = Vp6;
 		end
@@ -135,22 +141,30 @@ always_comb begin
 	C7: begin
 		mult00 = 32'd104595;
 		mult01 = V_0 - 32'd128;
-		mult10 = 32'd25624;
+		mult10 = -32'd25624;
 		mult11 = U_0 - 32'd128;
-		mult20 = 32'd53281;
+		mult20 = -32'd53281;
 		mult21 = V_0 - 32'd128;
 		mult30 = 32'd132251;
 		mult31 = U_0 - 32'd128;
+
+		r0 <= (A31_0 + MULT0) >> 16;
+		g0 <= (A31_0 + MULT1 + MULT2) >> 16;
+		b0 <= (A31_0 + MULT3) >> 16;
 	end
 	C8: begin
 		mult00 = 32'd104595;
 		mult01 = V_1 - 32'd128;
-		mult10 = 32'd25624;
+		mult10 = -32'd25624;
 		mult11 = U_1 - 32'd128;
-		mult20 = 32'd53281;
+		mult20 = -32'd53281;
 		mult21 = V_1 - 32'd128;
 		mult30 = 32'd132251;
 		mult31 = U_1 - 32'd128;
+
+		r1 <= (A31_1 + MULT0) >> 16;
+		g1 <= (A31_1 + MULT1 + MULT2) >> 16;
+		b1 <= (A31_1 + MULT3) >> 16;
 	end
 	C9: begin
 		//For V_3
@@ -174,6 +188,10 @@ always_comb begin
 		mult21 = V_2 - 32'd128;
 		mult30 = 32'd132251;
 		mult31 = U_2 - 32'd128;
+
+		r2 <= (A31_2 + MULT0) >> 16;
+		g2 <= (A31_2 + MULT1 + MULT2) >> 16;
+		b2 <= (A31_2 + MULT3) >> 16;
 	end
 	C11: begin
 		mult00 = 32'd104595;
@@ -184,6 +202,10 @@ always_comb begin
 		mult21 = V_3 - 32'd128;
 		mult30 = 32'd132251;
 		mult31 = U_3 - 32'd128;
+
+		r3 <= (A31_3 + MULT0) >> 16;
+		g3 <= (A31_3 + MULT1 + MULT2) >> 16;
+		b3 <= (A31_3 + MULT3) >> 16;
 	end
   endcase
 end
@@ -291,8 +313,8 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			Yp0 <= YP0;
 			Yp1 <= YP1;
 
-			A31_0 <= MULT0[31:0];
-			A31_1 <= MULT1[31:0];
+			A31_0 <= MULT0;
+			A31_1 <= MULT1;
 
 			STATE <= C4;
 		end
@@ -330,24 +352,28 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			STATE <= C7;
 		end
 		C7: begin
-			R0 <= (A31_0 + MULT0)/65536;
-			G0 <= (A31_0 + MULT1 + MULT2)/65536;
-			B0 <= (A31_0 + MULT3)/65536;
+			R0 <= r0;
+			G0 <= g0;
+			B0 <= b0;
 
-			//SRAM_we_n <= 0;
-			//SRAM_address <= RGB_START + 0 + ITERATION*6;
-			//SRAM_write_data <= {(A31_0 + MULT0)/65536, (A31_0 + MULT1 + MULT2)/65536};
+			DEBUG_R0_SUM0 <= A31_0;
+			DEBUG_R0_SUM1 <= MULT0;
+			DEBUG_R0_SUM2 <= A31_0 + MULT0;
+
+			SRAM_we_n <= 0;
+			SRAM_address <= RGB_START + 0 + ITERATION*6;
+			SRAM_write_data <= {r0, g0};
 
 			STATE <= C8;
 		end
 		C8: begin
-			R1 <= (A31_1 + MULT0)/65536;
-			G1 <= (A31_1 + MULT1 + MULT2)/65536;
-			B1 <= (A31_1 + MULT3)/65536;
+			R1 <= r1;
+			G1 <= g1;
+			B1 <= b1;
 
-			//SRAM_we_n <= 0;
-			//SRAM_address <= RGB_START + 1 + ITERATION*6;
-			//SRAM_write_data <= {B0, (A31_1 + MULT0)/65536};
+			SRAM_we_n <= 0;
+			SRAM_address <= RGB_START + 1 + ITERATION*6;
+			SRAM_write_data <= {B0, r1};
 
 			STATE <= C9;
 		end
@@ -356,38 +382,38 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			U_3 <= (U_3B0 - U_3B1 + MULT3 + 32'd128) >> 8;
 			V_3 <= (MULT0 - MULT1 + MULT2 + 32'd128) >> 8;
 
-			//SRAM_we_n <= 0;
-			//SRAM_address <= RGB_START + 2 + ITERATION*6;
-			//SRAM_write_data <= {G1, B1};
+			SRAM_we_n <= 0;
+			SRAM_address <= RGB_START + 2 + ITERATION*6;
+			SRAM_write_data <= {G1, B1};
 
 			STATE <= C10;
 		end
 		C10: begin
-			R2 <= (A31_2 + MULT0)/65536;
-			G2 <= (A31_2 + MULT1 + MULT2)/65536;
-			B2 <= (A31_2 + MULT3)/65536;
+			R2 <= r2;
+			G2 <= g2;
+			B2 <= b2;
 
-			//SRAM_we_n <= 0;
-			//SRAM_address <= RGB_START + 3 + ITERATION*6;
-			//SRAM_write_data <= {(A31_2 + MULT0)/65536, (A31_2 + MULT1 + MULT2)/65536};
+			SRAM_we_n <= 0;
+			SRAM_address <= RGB_START + 3 + ITERATION*6;
+			SRAM_write_data <= {r2, g2};
 
 			STATE <= C11;
 		end
 		C11: begin
-			R3 <= (A31_3 + MULT0)/65536;
-			G3 <= (A31_3 + MULT1 + MULT2)/65536;
-			B3 <= (A31_3 + MULT3)/65536;
+			R3 <= r3;
+			G3 <= g3;
+			B3 <= b3;
 
-			//SRAM_we_n <= 0;
-			//SRAM_address <= RGB_START + 4 + ITERATION*6;
-			//SRAM_write_data <= {B2, (A31_3 + MULT0)/65536};
+			SRAM_we_n <= 0;
+			SRAM_address <= RGB_START + 4 + ITERATION*6;
+			SRAM_write_data <= {B2, r3};
 
 			STATE <= C12;
 		end
 		C12: begin
-			//SRAM_we_n <= 0;
-			//SRAM_address <= RGB_START + 5 + ITERATION*6;
-			//SRAM_write_data <= {G3, B3};
+			SRAM_we_n <= 0;
+			SRAM_address <= RGB_START + 5 + ITERATION*6;
+			SRAM_write_data <= {G3, B3};
 
 			Up10 <= 0; Up8 <= 0; 
 			Up6 <= Up10; Up4 <= Up8; Up2 <= Up6; U0 <= Up4; Un2 <= Up2; Un4 <= U0;
@@ -398,7 +424,7 @@ always_ff @(posedge Clock or negedge Resetn) begin
 
 			ITERATION <= ITERATION + 1;
 
-			if(ITERATION % (IMG_WIDTH >> 1) == ((IMG_WIDTH >> 1) - 1)) STATE <= I0; //Downsampled original with WIDTH/2.
+			if(ITERATION % (IMG_WIDTH >> 2) == ((IMG_WIDTH >> 2) - 1)) STATE <= I0; //Downsampled original with WIDTH/2.
 			else STATE <= C0;
 		end
 	endcase

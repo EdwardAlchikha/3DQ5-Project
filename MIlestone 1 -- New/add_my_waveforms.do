@@ -22,39 +22,39 @@ add wave -unsigned uut/M1_unit/Yp1
 add wave -unsigned uut/M1_unit/Yp0
 
 add wave -divider "(U Upsampling)"
-add wave -unsigned uut/M1_unit/Up10
-add wave -unsigned uut/M1_unit/Up8
-add wave -unsigned uut/M1_unit/Up6
-add wave -unsigned uut/M1_unit/Up4
+#add wave -unsigned uut/M1_unit/Up10
+#add wave -unsigned uut/M1_unit/Up8
+#add wave -unsigned uut/M1_unit/Up6
+#add wave -unsigned uut/M1_unit/Up4
 add wave -unsigned uut/M1_unit/U_3
 add wave -unsigned uut/M1_unit/Up2
 add wave -unsigned uut/M1_unit/U_1
 add wave -unsigned uut/M1_unit/U0
-add wave -unsigned uut/M1_unit/Un2
-add wave -unsigned uut/M1_unit/Un4
+#add wave -unsigned uut/M1_unit/Un2
+#add wave -unsigned uut/M1_unit/Un4
 
 add wave -divider "(V Upsampling)"
-add wave -unsigned uut/M1_unit/Vp10
-add wave -unsigned uut/M1_unit/Vp8
-add wave -unsigned uut/M1_unit/Vp6
-add wave -unsigned uut/M1_unit/Vp4
+#add wave -unsigned uut/M1_unit/Vp10
+#add wave -unsigned uut/M1_unit/Vp8
+#add wave -unsigned uut/M1_unit/Vp6
+#add wave -unsigned uut/M1_unit/Vp4
 add wave -unsigned uut/M1_unit/V_3
 add wave -unsigned uut/M1_unit/Vp2
 add wave -unsigned uut/M1_unit/V_1
 add wave -unsigned uut/M1_unit/V0
-add wave -unsigned uut/M1_unit/Vn2
-add wave -unsigned uut/M1_unit/Vn4
+#add wave -unsigned uut/M1_unit/Vn2
+#add wave -unsigned uut/M1_unit/Vn4
 
-#add wave -divider "(Colourspace Conversion)"
-#add wave -hexadecimal uut/M1_unit/R0
-#add wave -hexadecimal uut/M1_unit/R1
-#add wave -hexadecimal uut/M1_unit/R2
-#add wave -hexadecimal uut/M1_unit/R3
-#add wave -hexadecimal uut/M1_unit/G0
-#add wave -hexadecimal uut/M1_unit/G1
-#add wave -hexadecimal uut/M1_unit/G2
-#add wave -hexadecimal uut/M1_unit/G3
-#add wave -hexadecimal uut/M1_unit/B0
-#add wave -hexadecimal uut/M1_unit/B1
-#add wave -hexadecimal uut/M1_unit/B2
-#add wave -hexadecimal uut/M1_unit/B3
+add wave -divider "(Colourspace Conversion)"
+add wave -unsigned uut/M1_unit/R0
+add wave -unsigned uut/M1_unit/R1
+add wave -unsigned uut/M1_unit/R2
+add wave -unsigned uut/M1_unit/R3
+add wave -unsigned uut/M1_unit/G0
+add wave -unsigned uut/M1_unit/G1
+add wave -unsigned uut/M1_unit/G2
+add wave -unsigned uut/M1_unit/G3
+add wave -unsigned uut/M1_unit/B0
+add wave -unsigned uut/M1_unit/B1
+add wave -unsigned uut/M1_unit/B2
+add wave -unsigned uut/M1_unit/B3
