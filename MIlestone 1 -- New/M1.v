@@ -23,6 +23,7 @@ logic [17:0] RGB_START = 18'd146944;
 
 logic [15:0] IMG_WIDTH = 16'd320;
 logic [15:0] IMG_HEIGHT = 16'd240;
+logic [31:0] NUM_ITERATIONS = (IMG_WIDTH * IMG_HEIGHT) >> 2;
 
 logic [7:0] Yp0, Yp1, Yp2, Yp3; //No need to buffer since no upsampling. Just fetch the correct address.
 logic [7:0] YP0, YP1, YP2, YP3;
@@ -50,7 +51,8 @@ logic[17:0] ITERATION;
 enum logic [7:0] {
   IDLE,
   I0, I1, I2, I3, I4, I5, I6,
-  C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
+  C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11,
+  O0
 } STATE;
 
 
@@ -281,6 +283,9 @@ always_comb begin
   endcase
 end
 
+logic [17:0] IDLE_PERIOD_WRITE_ADDRESS;
+logic [15:0] IDLE_PERIOD_WRITE_DATA;
+logic IDLE_SHOULD_WRITE_BE_PERFORMED;
 
 always_ff @(posedge Clock or negedge Resetn) begin
   if(~Resetn) begin
@@ -296,6 +301,10 @@ always_ff @(posedge Clock or negedge Resetn) begin
 	Yp0 <= 0; Yp1 <= 0; Yp2 <= 0; Yp3 <=0;
 	Un4 <=0; Un2 <=0; U0 <= 0; Up2 <= 0; Up4 <=0; Up6 <= 0; Up8 <= 0; Up10 <= 0;
 	Vn4 <= 0; Vn2 <= 0; V0 <= 0; Vp2 <=0; Vp4 <= 0; Vp6 <= 0; Vp8 <= 0; Vp10 <=0;
+
+	IDLE_PERIOD_WRITE_ADDRESS <= 0;
+	IDLE_PERIOD_WRITE_DATA <= 0;
+	IDLE_SHOULD_WRITE_BE_PERFORMED <= 0;
   end
   else begin
 	case(STATE)
@@ -306,7 +315,7 @@ always_ff @(posedge Clock or negedge Resetn) begin
 
 			ITERATION <= 0;
 
-			if(Start) STATE <= I0;
+			if(Start && ~Stop) STATE <= I0;
 			else STATE <= IDLE;
 		end
 		I0: begin
@@ -390,6 +399,13 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			STATE <= C4;
 		end
 		C4: begin
+			if(IDLE_SHOULD_WRITE_BE_PERFORMED) begin
+				SRAM_we_n <= 0;
+				SRAM_address <= IDLE_PERIOD_WRITE_ADDRESS;
+				SRAM_write_data <= IDLE_PERIOD_WRITE_DATA;
+				IDLE_SHOULD_WRITE_BE_PERFORMED <= 0;
+			end
+
 			A31_2 <= MULT2;
 			A31_3 <= MULT3;
 			
@@ -407,7 +423,7 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			U_2 <= Up2;
 			
 			U_3B0 <= MULT3;
-
+			SRAM_we_n <= 1;
 			STATE <= C6;
 		end
 		C6: begin
@@ -428,7 +444,7 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			B0 <= b0;
 
 			SRAM_we_n <= 0;
-			SRAM_address <= RGB_START + 0 + ITERATION*6;
+			SRAM_address <= RGB_START + 0 + (ITERATION << 2) + (ITERATION << 1);
 			SRAM_write_data <= {r0, g0};
 
 			STATE <= C8;
@@ -439,7 +455,7 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			B1 <= b1;
 
 			SRAM_we_n <= 0;
-			SRAM_address <= RGB_START + 1 + ITERATION*6;
+			SRAM_address <= RGB_START + 1 + (ITERATION << 2) + (ITERATION << 1);
 			SRAM_write_data <= {B0, r1};
 
 			STATE <= C9;
@@ -450,7 +466,7 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			V_3 <= (MULT0 - MULT1 + MULT2 + 32'd128) >> 8;
 
 			SRAM_we_n <= 0;
-			SRAM_address <= RGB_START + 2 + ITERATION*6;
+			SRAM_address <= RGB_START + 2 + (ITERATION << 2) + (ITERATION << 1);
 			SRAM_write_data <= {G1, B1};
 
 			STATE <= C10;
@@ -461,7 +477,7 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			B2 <= b2;
 
 			SRAM_we_n <= 0;
-			SRAM_address <= RGB_START + 3 + ITERATION*6;
+			SRAM_address <= RGB_START + 3 + (ITERATION << 2) + (ITERATION << 1);
 			SRAM_write_data <= {r2, g2};
 
 			STATE <= C11;
@@ -472,15 +488,13 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			B3 <= b3;
 
 			SRAM_we_n <= 0;
-			SRAM_address <= RGB_START + 4 + ITERATION*6;
+			SRAM_address <= RGB_START + 4 + (ITERATION << 2) + (ITERATION << 1);
 			SRAM_write_data <= {B2, r3};
 
-			STATE <= C12;
-		end
-		C12: begin
-			SRAM_we_n <= 0;
-			SRAM_address <= RGB_START + 5 + ITERATION*6;
-			SRAM_write_data <= {G3, B3};
+			//C12 absorb:
+			IDLE_PERIOD_WRITE_ADDRESS <= RGB_START + 5 + (ITERATION << 2) + (ITERATION << 1);
+			IDLE_PERIOD_WRITE_DATA <= {g3, b3};
+			IDLE_SHOULD_WRITE_BE_PERFORMED <= 1;
 
 			Up10 <= 0; Up8 <= 0; 
 			Up6 <= Up10; Up4 <= Up8; Up2 <= Up6; U0 <= Up4; Un2 <= Up2; Un4 <= U0;
@@ -491,9 +505,22 @@ always_ff @(posedge Clock or negedge Resetn) begin
 
 			ITERATION <= ITERATION + 1;
 
-			if(ITERATION == (IMG_WIDTH * IMG_HEIGHT) / 4 - 1) Stop <= 1;
+			if(ITERATION == NUM_ITERATIONS - 1) STATE <= O0;
 			else if(ITERATION % (IMG_WIDTH >> 2) == ((IMG_WIDTH >> 2) - 1)) STATE <= I0; //Downsampled original with WIDTH/2.
 			else STATE <= C0;
+		end
+		O0: begin
+			//This state exists to make the final writeout that can't be fulfilled during the IO IDLE period
+			//in the next common cycle, since there won't be a next common cycle.
+			if(IDLE_SHOULD_WRITE_BE_PERFORMED) begin
+				SRAM_we_n <= 0;
+				SRAM_address <= IDLE_PERIOD_WRITE_ADDRESS;
+				SRAM_write_data <= IDLE_PERIOD_WRITE_DATA;
+				IDLE_SHOULD_WRITE_BE_PERFORMED <= 0;
+			end
+
+			STATE <= IDLE;
+			Stop <= 1;
 		end
 	endcase
   end
