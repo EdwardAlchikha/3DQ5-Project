@@ -16,9 +16,6 @@ module M1 (
   input logic[15:0]    SRAM_read_data
 );
 
-logic [7:0] DEBUG_UBUFF [19:0];
-logic [7:0] DEBUG_VBUFF [19:0];
-
 logic [17:0] Y_START = 18'd0;
 logic [17:0] U_START = 18'd38400;
 logic [17:0] V_START = 18'd57600;
@@ -34,18 +31,19 @@ logic [7:0] UP8, UP10;
 logic [7:0] Vn4, Vn2, V0, Vp2, Vp4, Vp6, Vp8, Vp10; //Vp10,8 always_comb set, rest always_ff.
 logic [7:0] VP8, VP10;
 
-logic [31:0] mult00, mult01, mult10, mult11, mult20, mult21, mult30, mult31;
-logic [63:0] MULT0, MULT1, MULT2, MULT3;
+logic signed [31:0] mult00, mult01, mult10, mult11, mult20, mult21, mult30, mult31;
+logic signed [63:0] MULT0, MULT1, MULT2, MULT3;
 
 logic [7:0] R0, G0, B0, R1, G1, B1, R2, G2, B2, R3, G3, B3; //FF
 logic [7:0] r0, g0, b0, r1, g1, b1, r2, g2, b2, r3, g3, b3; //comb
+logic signed [31:0] r_unclipped, g_unclipped, b_unclipped; //comb
 
-logic [7:0] U_0, U_1, U_2, U_3,
-            V_0, V_1, V_2, V_3;
+logic signed [31:0] U_0, U_1, U_2, U_3,
+                    V_0, V_1, V_2, V_3;
 
 
-logic [31:0] U_3B0, U_3B1, U_3B2;
-logic [63:0] A11, A21, A31_0, A31_1, A31_2, A31_3;
+logic signed [31:0] U_3B0, U_3B1, U_3B2;
+logic signed [63:0] A11, A21, A31_0, A31_1, A31_2, A31_3;
 
 logic[17:0] ITERATION;
 
@@ -55,7 +53,6 @@ enum logic [7:0] {
   C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
 } STATE;
 
-logic[32:0] DEBUG_R0_SUM0, DEBUG_R0_SUM1, DEBUG_R0_SUM2;
 
 always_comb begin
   MULT0 = $signed(mult00 * mult01);
@@ -68,6 +65,7 @@ always_comb begin
   YP0 = 0; YP1 = 0; YP2 = 0; YP3 = 0;
   UP8 = 0; UP10 = 0;
   VP8 = 0; VP10 = 0;
+  r_unclipped = 0; g_unclipped = 0; b_unclipped = 0;
   mult00 = 0; mult01 = 0;
   mult10 = 0; mult11 = 0;
   mult20 = 0; mult21 = 0;
@@ -148,9 +146,27 @@ always_comb begin
 		mult30 = 32'd132251;
 		mult31 = U_0 - 32'd128;
 
-		r0 <= (A31_0 + MULT0) >> 16;
-		g0 <= (A31_0 + MULT1 + MULT2) >> 16;
-		b0 <= (A31_0 + MULT3) >> 16;
+		r_unclipped = (A31_0 + MULT0) >>> 16;
+		g_unclipped = (A31_0 + MULT1 + MULT2) >>> 16;
+		b_unclipped = (A31_0 + MULT3) >>> 16;
+
+		if(r_unclipped >= 0) begin
+			if(r_unclipped < 256) r0 = r_unclipped[7:0];
+			else r0 = 8'd255;
+		end
+		else r0 = 0;
+
+		if(g_unclipped > 0) begin
+			if(g_unclipped < 256) g0 = g_unclipped[7:0];
+			else g0 = 8'd255;
+		end
+		else g0 = 0;
+
+		if(b_unclipped > 0) begin
+			if(b_unclipped < 256) b0 = b_unclipped[7:0];
+			else b0 = 8'd255;
+		end
+		else b0 = 0;
 	end
 	C8: begin
 		mult00 = 32'd104595;
@@ -162,9 +178,28 @@ always_comb begin
 		mult30 = 32'd132251;
 		mult31 = U_1 - 32'd128;
 
-		r1 <= (A31_1 + MULT0) >> 16;
-		g1 <= (A31_1 + MULT1 + MULT2) >> 16;
-		b1 <= (A31_1 + MULT3) >> 16;
+
+		r_unclipped = (A31_1 + MULT0) >>> 16;
+		g_unclipped = (A31_1 + MULT1 + MULT2) >>> 16;
+		b_unclipped = (A31_1 + MULT3) >>> 16;
+
+		if(r_unclipped >= 0) begin
+			if(r_unclipped < 256) r1 = r_unclipped[7:0];
+			else r1 = 8'd255;
+		end
+		else r1 = 0;
+
+		if(g_unclipped > 0) begin
+			if(g_unclipped < 256) g1 = g_unclipped[7:0];
+			else g1 = 8'd255;
+		end
+		else g1 = 0;
+
+		if(b_unclipped > 0) begin
+			if(b_unclipped < 256) b1 = b_unclipped[7:0];
+			else b1 = 8'd255;
+		end
+		else b1 = 0;
 	end
 	C9: begin
 		//For V_3
@@ -189,9 +224,27 @@ always_comb begin
 		mult30 = 32'd132251;
 		mult31 = U_2 - 32'd128;
 
-		r2 <= (A31_2 + MULT0) >> 16;
-		g2 <= (A31_2 + MULT1 + MULT2) >> 16;
-		b2 <= (A31_2 + MULT3) >> 16;
+		r_unclipped = (A31_2 + MULT0) >>> 16;
+		g_unclipped = (A31_2 + MULT1 + MULT2) >>> 16;
+		b_unclipped = (A31_2 + MULT3) >>> 16;
+
+		if(r_unclipped >= 0) begin
+			if(r_unclipped < 256) r2 = r_unclipped[7:0];
+			else r2 = 8'd255;
+		end
+		else r2 = 0;
+
+		if(g_unclipped > 0) begin
+			if(g_unclipped < 256) g2 = g_unclipped[7:0];
+			else g2 = 8'd255;
+		end
+		else g2 = 0;
+
+		if(b_unclipped > 0) begin
+			if(b_unclipped < 256) b2 = b_unclipped[7:0];
+			else b2 = 8'd255;
+		end
+		else b2 = 0;
 	end
 	C11: begin
 		mult00 = 32'd104595;
@@ -203,9 +256,27 @@ always_comb begin
 		mult30 = 32'd132251;
 		mult31 = U_3 - 32'd128;
 
-		r3 <= (A31_3 + MULT0) >> 16;
-		g3 <= (A31_3 + MULT1 + MULT2) >> 16;
-		b3 <= (A31_3 + MULT3) >> 16;
+		r_unclipped = (A31_3 + MULT0) >>> 16;
+		g_unclipped = (A31_3 + MULT1 + MULT2) >>> 16;
+		b_unclipped = (A31_3 + MULT3) >>> 16;
+
+		if(r_unclipped >= 0) begin
+			if(r_unclipped < 256) r3 = r_unclipped[7:0];
+			else r3 = 8'd255;
+		end
+		else r3 = 0;
+
+		if(g_unclipped > 0) begin
+			if(g_unclipped < 256) g3 = g_unclipped[7:0];
+			else g3 = 8'd255;
+		end
+		else g3 = 0;
+
+		if(b_unclipped > 0) begin
+			if(b_unclipped < 256) b3 = b_unclipped[7:0];
+			else b3 = 8'd255;
+		end
+		else b3 = 0;
 	end
   endcase
 end
@@ -319,8 +390,8 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			STATE <= C4;
 		end
 		C4: begin
-			A31_2 <= MULT2[31:0];
-			A31_3 <= MULT3[31:0];
+			A31_2 <= MULT2;
+			A31_3 <= MULT3;
 			
 			Yp2 <= YP2;
 			Yp3 <= YP3;
@@ -355,10 +426,6 @@ always_ff @(posedge Clock or negedge Resetn) begin
 			R0 <= r0;
 			G0 <= g0;
 			B0 <= b0;
-
-			DEBUG_R0_SUM0 <= A31_0;
-			DEBUG_R0_SUM1 <= MULT0;
-			DEBUG_R0_SUM2 <= A31_0 + MULT0;
 
 			SRAM_we_n <= 0;
 			SRAM_address <= RGB_START + 0 + ITERATION*6;
@@ -424,11 +491,11 @@ always_ff @(posedge Clock or negedge Resetn) begin
 
 			ITERATION <= ITERATION + 1;
 
-			if(ITERATION % (IMG_WIDTH >> 2) == ((IMG_WIDTH >> 2) - 1)) STATE <= I0; //Downsampled original with WIDTH/2.
+			if(ITERATION == (IMG_WIDTH * IMG_HEIGHT) / 4 - 1) Stop <= 1;
+			else if(ITERATION % (IMG_WIDTH >> 2) == ((IMG_WIDTH >> 2) - 1)) STATE <= I0; //Downsampled original with WIDTH/2.
 			else STATE <= C0;
 		end
 	endcase
   end
 end
-
 endmodule

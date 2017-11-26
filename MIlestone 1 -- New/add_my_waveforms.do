@@ -58,3 +58,21 @@ add wave -unsigned uut/M1_unit/B0
 add wave -unsigned uut/M1_unit/B1
 add wave -unsigned uut/M1_unit/B2
 add wave -unsigned uut/M1_unit/B3
+
+add wave -divider "(DEBUG)"
+add wave -unsigned uut/M1_unit/mult00
+add wave -unsigned uut/M1_unit/mult01
+add wave -unsigned uut/M1_unit/MULT0
+add wave -unsigned uut/M1_unit/mult10
+add wave -unsigned uut/M1_unit/mult11
+add wave -unsigned uut/M1_unit/MULT1
+add wave -unsigned uut/M1_unit/mult20
+add wave -unsigned uut/M1_unit/mult21
+add wave -unsigned uut/M1_unit/MULT2
+add wave -unsigned uut/M1_unit/mult30
+add wave -unsigned uut/M1_unit/mult31
+add wave -unsigned uut/M1_unit/MULT3
+add wave -unsigned uut/M1_unit/A31_0
+add wave -unsigned uut/M1_unit/A31_1
+add wave -unsigned uut/M1_unit/A31_2
+add wave -unsigned uut/M1_unit/A31_3
