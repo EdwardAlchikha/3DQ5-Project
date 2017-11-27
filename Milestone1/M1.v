@@ -23,7 +23,7 @@ logic [17:0] RGB_START = 18'd146944;
 
 logic [15:0] IMG_WIDTH = 16'd320;
 logic [15:0] IMG_HEIGHT = 16'd240;
-logic [31:0] NUM_ITERATIONS = (IMG_WIDTH * IMG_HEIGHT) >> 2;
+logic [31:0] NUM_ITERATIONS = 32'd19200;//(IMG_WIDTH * IMG_HEIGHT) >> 2;
 
 logic [7:0] Yp0, Yp1, Yp2, Yp3; //No need to buffer since no upsampling. Just fetch the correct address.
 logic [7:0] YP0, YP1, YP2, YP3;
@@ -72,6 +72,9 @@ always_comb begin
   mult10 = 0; mult11 = 0;
   mult20 = 0; mult21 = 0;
   mult30 = 0; mult31 = 0;
+  r0 = 0; r1 = 0; r2 = 0; r3 = 0;
+  g0 =0; g1 = 0; g2 = 0; g3 = 0;
+  b0 = 0; b1 = 0; b2 = 0; b3 = 0;
 
   case(STATE)
 	C3: begin
